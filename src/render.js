@@ -107,7 +107,10 @@ async function listExtensionBlocks(page, extName) {
       if (a.blockHidden || a.deprecated) { skipped.push(`${s.qName}: hidden or deprecated`); continue; }
       if (s.kind !== FUNC || !s.namespace) { skipped.push(`${s.qName}: not a namespace function (needs an instance)`); continue; }
       const args = (s.parameters || []).map((p) => {
-        if (p.default !== undefined && p.default !== null && p.default !== '') return /^(string)$/.test(p.type) && !/^["']/.test(p.default) ? JSON.stringify(p.default) : p.default;
+        // An enum parameter must be given an enum member: pxt can report the member's raw
+        // value as the default (e.g. 115200), which the decompiler cannot turn into a block.
+        const isEnumDefault = enumFirst[p.type] && !String(p.default).startsWith(p.type + '.');
+        if (!isEnumDefault && p.default !== undefined && p.default !== null && p.default !== '') return /^(string)$/.test(p.type) && !/^["']/.test(p.default) ? JSON.stringify(p.default) : p.default;
         if (p.type === 'number') return '0';
         if (p.type === 'string') return '""';
         if (p.type === 'boolean') return 'false';
