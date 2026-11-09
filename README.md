@@ -54,25 +54,25 @@ as `set result to <block>`. Two blocks with the same function name fail the run.
 
 Output `rendered-files`: JSON array of written paths.
 
-## Rendering on tags only
+## Rendering on push
 
-Images only need to exist for released versions, so render when a tag is pushed
-and commit them back (at "tag + 1"). See
-[examples/render-on-tag.yml](examples/render-on-tag.yml). Points to know:
+Render when `main` (or a branch you list) is pushed, and commit the images
+back onto that branch, one commit after the push. See
+[examples/render-on-push.yml](examples/render-on-push.yml). Points to know:
 
-- A tag checkout is a detached HEAD, so the workflow renders into
-  `runner.temp`, switches to the default branch and commits there. The tag is
-  never moved, and renders come from the tagged commit.
+- Renders come from the pushed commit; the images commit lands just after it.
 - **No CI loop.** Pushes made with the built-in `GITHUB_TOKEN` do not trigger
-  workflows, and the commit message carries `[skip ci]` in case a PAT or app
-  token is used (those *do* trigger runs). Because it pushes to a branch, the
-  `tags:` trigger cannot fire again either.
-- If your other workflows run on branch pushes and you use a PAT, also add
-  `paths-ignore: ['rendered/**']` to them.
-- Branch protection that blocks pushes to the default branch will block the
-  bot; allow `github-actions[bot]` or use a PAT/app token with bypass.
+  workflows; the commit message carries `[skip ci]` in case a PAT or app token
+  is used (those *do* trigger runs); and the workflow's `paths` filter excludes
+  `rendered/**`. If you use a PAT, add `paths-ignore: ['rendered/**']` to your
+  other branch-push workflows too.
+- To trial it without touching `main`, add a test branch to `branches:`.
+- Branch protection that blocks pushes to the branch will block the bot; allow
+  `github-actions[bot]` or use a PAT/app token with bypass.
 - Keep `rendered/` out of `pxt.json` `files`; MakeCode doesn't need it.
 - Pin the action to a commit SHA if you want reproducible renders.
+- To render only on releases instead, trigger on `tags:` — but a tag checkout is
+  a detached HEAD, so switch to the default branch before committing.
 
 ## How rendering works
 
