@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Render
-        uses: tuxie-tech/gh-pxt-blocks-render@main   # pin to a commit SHA for reproducibility
+        uses: tuxie-tech/gh-pxt-blocks-render@v1   # or pin to a commit SHA for fully reproducible renders
         with:
           files: test.ts
           output-dir: ${{ runner.temp }}/renders      # outside the checkout

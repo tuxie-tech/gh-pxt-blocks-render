@@ -38,7 +38,7 @@ rendered as written, so use a full program there if you want a handler shown. Tw
 
 ```yaml
 - uses: actions/checkout@v7
-- uses: TuxieTech/gh-pxt-blocks-render@main
+- uses: TuxieTech/gh-pxt-blocks-render@v1
   with:
     files: |
       tests.ts
@@ -55,6 +55,13 @@ rendered as written, so use a full program there if you want a handler shown. Tw
 | `extension` | `<pxt.json name>=github:<repo>#<sha>` | Override dependency string |
 
 Output `rendered-files`: JSON array of written paths.
+
+## Versions
+
+`@v1` is a moving tag that follows the latest compatible 1.x release. For fully
+reproducible renders pin an exact release (`@v1.0.0`) or a commit SHA. The
+editor itself is not pinned unless you set `editor-url`, so output can change
+when MakeCode updates.
 
 ## Rendering on push
 
