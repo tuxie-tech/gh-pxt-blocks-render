@@ -35,7 +35,7 @@ as `set result to <block>`. Two blocks with the same function name fail the run.
 ## Use
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v7
 - uses: TuxieTech/gh-pxt-blocks-render@main
   with:
     files: |
