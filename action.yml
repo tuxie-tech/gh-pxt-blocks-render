@@ -1,0 +1,50 @@
+name: 'PXT Blocks Render'
+description: 'Render blocks and TypeScript from @render regions in a MakeCode extension tests.ts, using the micro:bit editor.'
+author: 'TuxieTech'
+branding:
+  icon: 'image'
+  color: 'blue'
+
+inputs:
+  files:
+    description: 'Files to read @render annotations from: one path per line, or comma separated.'
+    default: 'tests.ts'
+  output-dir:
+    description: 'Directory to write rendered images to.'
+    default: 'rendered'
+  all-blocks:
+    description: "Also render one image per block the extension provides, into <output-dir>/blocks/<function>-blocks.png."
+    default: 'true'
+  editor-url:
+    description: 'MakeCode micro:bit site to render with. Pin a versioned URL for reproducible output.'
+    default: 'https://makecode.microbit.org'
+  extension:
+    description: 'Override the dependency string for this extension (default: name=github:<repo>#<sha>).'
+    default: ''
+
+outputs:
+  rendered-files:
+    description: 'JSON array of paths to the rendered files.'
+    value: ${{ steps.render.outputs.rendered-files }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - name: Install action dependencies
+      shell: bash
+      run: npm ci --omit=dev --prefix "${{ github.action_path }}"
+    - name: Install Chromium
+      shell: bash
+      run: npx --prefix "${{ github.action_path }}" playwright-core install --with-deps chromium
+    - id: render
+      shell: bash
+      env:
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_OUTPUT-DIR: ${{ inputs.output-dir }}
+        INPUT_ALL-BLOCKS: ${{ inputs.all-blocks }}
+        INPUT_EDITOR-URL: ${{ inputs.editor-url }}
+        INPUT_EXTENSION: ${{ inputs.extension }}
+      run: node "${{ github.action_path }}/src/index.js"

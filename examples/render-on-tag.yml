@@ -1,0 +1,57 @@
+# Copy to .github/workflows/render-on-tag.yml in the extension repo.
+#
+# On a tag push: render from the tagged commit, then commit the images onto the
+# default branch (so they land at "tag + 1"; the tag itself is never moved).
+name: Render blocks on tag
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write   # needed to push the images commit
+
+# One render at a time; don't cancel a half-finished push.
+concurrency:
+  group: render-blocks
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4          # the tagged commit (detached HEAD)
+        with:
+          fetch-depth: 0
+
+      - name: Render
+        uses: tuxie-tech/gh-pxt-blocks-render@main   # pin to a commit SHA for reproducibility
+        with:
+          files: test.ts
+          output-dir: ${{ runner.temp }}/renders      # outside the checkout, survives the branch switch
+
+      - name: Commit images to the default branch
+        env:
+          BRANCH: ${{ github.event.repository.default_branch }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git switch "$BRANCH"
+          git pull --ff-only origin "$BRANCH"
+
+          rm -rf rendered
+          cp -R "$RUNNER_TEMP/renders" rendered
+
+          git add --all rendered
+          if git diff --cached --quiet; then
+            echo "Renders unchanged; nothing to commit."
+            exit 0
+          fi
+
+          # [skip ci] is a second guard: pushes made with GITHUB_TOKEN already
+          # don't trigger workflows, but a PAT or app token would.
+          git commit -m "Update block renders for $TAG [skip ci]"
+          git push origin "$BRANCH"
