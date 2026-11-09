@@ -10,7 +10,9 @@ on:
     paths:                      # only re-render when sources change...
       - '**.ts'
       - 'pxt.json'
+      - '.github/workflows/render-blocks.yml'
       - '!rendered/**'          # ...and never because of our own output
+  workflow_dispatch:            # manual re-run from the Actions tab
 
 permissions:
   contents: write               # needed to push the images commit
