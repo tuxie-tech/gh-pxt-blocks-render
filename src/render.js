@@ -36,8 +36,10 @@ async function openRunner(browser, { editorUrl, dependency }) {
 }
 
 // Decompile `code` to blocks using pxt.runner and screenshot the result.
-async function renderBlocks(page, code, out) {
-  const ok = await page.evaluate(async ({ code, dependency }) => {
+// If `blockId` is given, only that block is kept (without the "on start" or
+// variable wrapper that pxt adds around loose snippets).
+async function renderBlocks(page, code, out, blockId) {
+  const ok = await page.evaluate(async ({ code, dependency, blockId }) => {
     const res = await pxt.runner.decompileSnippetAsync(code, {
       package: dependency ? dependency : undefined,
       snippetMode: false,
@@ -47,16 +49,43 @@ async function renderBlocks(page, code, out) {
     const holder = document.createElement('div');
     holder.id = 'pxt-render';
     holder.style.cssText = 'display:inline-block;background:#fff;padding:8px';
-    const svg = res.blocksSvg;
+    let svg = res.blocksSvg;
+    if (blockId) {
+      const target = svg.querySelector('g.blocklyBlock.' + CSS.escape(blockId));
+      if (!target) return { error: `block "${blockId}" not found in the rendered snippet` };
+      // Measure in place, then move a clone into a copy of the svg shell
+      // (same classes/theme, same <defs>) with the wrappers left behind.
+      const holderTmp = document.createElement('div');
+      holderTmp.style.cssText = 'position:absolute;left:0;top:0';
+      holderTmp.appendChild(svg);
+      document.body.appendChild(holderTmp);
+      // Use the block's own outline: the group's bbox also covers invisible
+      // helpers (connection indicators, hidden fields) and leaves blank margins.
+      const outline = target.querySelector(':scope > path.blocklyPath') || target;
+      const box = outline.getBBox();
+      const pad = 6;
+      const clone = target.cloneNode(true);
+      clone.removeAttribute('transform');
+      const shell = svg.cloneNode(false);
+      for (const d of svg.querySelectorAll(':scope > defs')) shell.appendChild(d.cloneNode(true));
+      const canvas = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      canvas.setAttribute('class', 'blocklyBlockCanvas');
+      canvas.appendChild(clone);
+      shell.appendChild(canvas);
+      shell.setAttribute('viewBox', `${box.x - pad} ${box.y - pad} ${Math.ceil(box.width + 2 * pad)} ${Math.ceil(box.height + 2 * pad)}`);
+      holderTmp.remove();
+      svg = shell;
+    }
     const vb = (svg.getAttribute('viewBox') || '').split(/\s+/).map(Number);
     if (vb.length === 4 && vb[2] > 0 && vb[3] > 0) {
       svg.setAttribute('width', String(Math.ceil(vb[2])));
       svg.setAttribute('height', String(Math.ceil(vb[3])));
     }
+    svg.style.display = 'block'; // avoid the inline-svg baseline gap
     holder.appendChild(svg);
     document.body.appendChild(holder);
     return {};
-  }, { code, dependency: page.dependency });
+  }, { code, dependency: page.dependency, blockId });
   if (ok.error) throw new Error(ok.error);
   await page.locator('#pxt-render').screenshot({ path: out });
 }
@@ -89,7 +118,7 @@ async function listExtensionBlocks(page, extName) {
       if (args.includes(null)) { skipped.push(`${s.qName}: cannot build a default argument`); continue; }
       const call = `${s.qName}(${args.join(', ')})`;
       const code = s.retType && s.retType !== 'void' ? `let result = ${call}` : call;
-      blocks.push({ name: s.name, qName: s.qName, code });
+      blocks.push({ name: s.name, qName: s.qName, blockId: a.blockId, code });
     }
     blocks.sort((x, y) => x.qName.localeCompare(y.qName));
     return { blocks, skipped };

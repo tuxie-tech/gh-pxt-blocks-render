@@ -29,8 +29,10 @@ block the extension provides, into `<output-dir>/blocks/<function>-blocks.png`
 these. The list comes from pxt's own API info for blocks whose `pkg` is this
 extension and that have a `blockId`. Hidden and deprecated blocks, and blocks
 that need an instance (class methods), are skipped with a warning. Parameters
-use their `defl`, or `0`/`""`/`false`/first enum member. Value blocks are shown
-as `set result to <block>`. Two blocks with the same function name fail the run.
+use their `defl`, or `0`/`""`/`false`/first enum member. Only the block itself is
+rendered: pxt wraps a loose snippet in "on start" (and value blocks in
+`set result to ...`), and those wrappers are cut away. The `@render` regions are
+rendered as written, so use a full program there if you want a handler shown. Two blocks with the same function name fail the run.
 
 ## Use
 

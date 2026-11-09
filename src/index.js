@@ -69,7 +69,7 @@ async function run() {
         for (const b of blocks) {
           const out = path.join(blocksDir, `${b.name}-blocks.png`);
           try {
-            await renderBlocks(runner, b.code, out);
+            await renderBlocks(runner, b.code, out, b.blockId);
           } catch (e) {
             throw new Error(`block ${b.qName}: ${e.message}`);
           }
